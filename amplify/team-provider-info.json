@@ -17,6 +17,9 @@
                     "appId": "d2g3dhafneq9qq",
                     "type": "cicd"
                 }
+            },
+            "auth": {
+                "timeline7f164511": {}
             }
         }
     }
