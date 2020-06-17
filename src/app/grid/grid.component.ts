@@ -24,7 +24,7 @@ export class GridComponent implements OnInit {
     this.timelineService.getMoments()
       .subscribe(moments => {
         this.moments = this.moments.concat(moments);
-        console.log(`moment = ${this.moments}`);
+        console.log(`moment = ${JSON.stringify(this.moments)}`);
       }
       );
   }
