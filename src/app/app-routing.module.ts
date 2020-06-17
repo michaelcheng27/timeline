@@ -7,7 +7,7 @@ import { HeroDetailComponent } from './hero-detail/hero-detail.component';
 import { GridComponent } from './grid/grid.component';
 
 const routes: Routes = [
-  { path: '', redirectTo: '/grid', pathMatch: 'full' },
+  { path: '', component: GridComponent },
   // { path: 'dashboard', component: DashboardComponent },
   // { path: 'detail/:id', component: HeroDetailComponent },
   // { path: 'heroes', component: HeroesComponent },

@@ -2,6 +2,6 @@
 @use '@material/image-list';
 
 .my-image-list {
-    @include image-list.masonry-columns(3);
+    @include image-list.masonry-columns(3, 10);
     // max-width: 960px;
   }
