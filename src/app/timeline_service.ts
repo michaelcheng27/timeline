@@ -21,7 +21,6 @@ export class TimelineService {
   }
 
   getTimeline(pagingToken: string): Observable<Timeline> {
-    console.log(`this.httpOptions = ${this.httpOptions}`);
     return this.http.post<Timeline>(this.timelineUrl, { "PagingToken": pagingToken }, this.httpOptions);
   }
 }
