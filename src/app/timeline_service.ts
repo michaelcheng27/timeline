@@ -2,17 +2,14 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 import { Observable, of } from 'rxjs';
-import { catchError, map, tap } from 'rxjs/operators';
 
-import { Moment } from './moment';
-import { MessageService } from './message.service';
+import { Timeline } from './timeline';
 
 
 @Injectable({ providedIn: 'root' })
 export class TimelineService {
 
-  private momentsUrl = "https://m224e6853e.execute-api.us-west-2.amazonaws.com/dev/timeline";  // URL to web api
-  private paingToken = null;
+  private timelineUrl = "https://m224e6853e.execute-api.us-west-2.amazonaws.com/dev/timeline";  // URL to web api
   httpOptions = {
     headers: new HttpHeaders({
       'Content-Type': 'application/json'
@@ -23,8 +20,8 @@ export class TimelineService {
     private http: HttpClient) {
   }
 
-  getMoments(): Observable<Moment[]> {
+  getTimeline(pagingToken: string): Observable<Timeline> {
     console.log(`this.httpOptions = ${this.httpOptions}`);
-    return this.http.post<Moment[]>(this.momentsUrl, {}, this.httpOptions);
+    return this.http.post<Timeline>(this.timelineUrl, { "PagingToken": pagingToken }, this.httpOptions);
   }
 }
