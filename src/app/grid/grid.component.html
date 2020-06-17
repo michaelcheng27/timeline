@@ -1,5 +1,15 @@
-<ul class="mdc-image-list mdc-image-list--masonry my-image-list">
-    <li class="mdc-image-list__item" *ngFor="let h of heroes">
-        <img class="mdc-image-list__image" src={{h.s3Handle}}>
-    </li>
-</ul>
+<div class="timeline-grid" infinite-scroll [infiniteScrollDistance]="scrollDistance"
+    [infiniteScrollUpDistance]="scrollUpDistance" [infiniteScrollThrottle]="throttle" (scrolled)="onScrollDown()"
+    (scrolledUp)="onUp()">
+    <ul class="mdc-image-list mdc-image-list--masonry my-image-list">
+        <li class="mdc-image-list__item" *ngFor="let h of heroes">
+            <img class="mdc-image-list__image" src={{h.s3Handle}}>
+        </li>
+    </ul>
+</div>
+<mat-toolbar color="accent">
+    <span>See More</span>
+
+    <!-- This fills the remaining space of the current row -->
+    <span class="example-fill-remaining-space"></span>
+</mat-toolbar>

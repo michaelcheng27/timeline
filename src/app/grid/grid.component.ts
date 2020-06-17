@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { Hero } from '../hero';
-import { HeroService } from '../hero.service';
+import { Moment } from '../moment';
+import { TimelineService } from '../timeline_service';
 
 @Component({
   selector: 'app-grid',
@@ -8,17 +8,30 @@ import { HeroService } from '../hero.service';
   styleUrls: ['./grid.component.scss']
 })
 export class GridComponent implements OnInit {
-  heroes: Hero[];
+  moments: Moment[] = [];
+  throttle = 300;
+  scrollDistance = 4;
+  scrollUpDistance = 2;
 
-  constructor(private heroService: HeroService) { }
+  constructor(private timelineService: TimelineService) { }
 
   ngOnInit() {
-    this.getHeroes();
+    console.log(`grid init`);
+    this.getMoments();
   }
 
-  getHeroes(): void {
-    this.heroService.getHeroes()
-      .subscribe(heroes => this.heroes = heroes);
+  getMoments(): void {
+    this.timelineService.getMoments()
+      .subscribe(moments => {
+        this.moments = this.moments.concat(moments);
+        console.log(`moment = ${this.moments}`);
+      }
+      );
   }
 
+
+  onScrollDown(ev) {
+    console.log('scrolled down!!', ev);
+    this.getMoments();
+  }
 }
