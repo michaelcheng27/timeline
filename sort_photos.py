@@ -6,8 +6,8 @@ from datetime import datetime
 EXIF_TIME_TAG = 0x9003  # DateTimeOriginal
 EXIF_SUB_SEC_TIME_TAG = 0x9291  # SubsecTimeOriginal
 
-DESTINATION = "/mnt/d/sorted_photo"
-SOURCE = '/mnt/d/photo'
+DESTINATION = "/mnt/d/ws/sort_photo"
+SOURCE = '/mnt/d/ws/timeline'
 
 
 def get_image_uuid(exif):
@@ -43,11 +43,20 @@ def get_dest_dir(taken_datetime):
     return f"{DESTINATION}/{year}-Q{quarter}"
 
 
+def file_exist(new_file_path, f):
+    return Path(new_file_path).exists()
+
+
 def move_file(taken_datetime, f):
     # make sure dest_dir exist
     dest_dir = get_dest_dir(taken_datetime)
+    new_file_path = f"{dest_dir}/{f.name}"
     Path(dest_dir).mkdir(parents=True, exist_ok=True)
-    f.rename(f"{dest_dir}/{f.name}")
+    if file_exist(dest_dir, f):
+        print(
+            f"[ERORR]: File exists, skip moving. new_file_path = {new_file_path}")
+        return
+    f.rename(new_file_path)
 
 
 print("Hello world")
