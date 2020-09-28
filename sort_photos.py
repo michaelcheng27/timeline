@@ -3,23 +3,31 @@ from PIL.ExifTags import TAGS
 from PIL.TiffImagePlugin import TiffImageFile, DATE_TIME
 from pathlib import Path
 from datetime import datetime
-from mutagen import File
+import ffmpeg
 
 EXIF_TIME_TAG = 0x9003  # DateTimeOriginal
 EXIF_SUB_SEC_TIME_TAG = 0x9291  # SubsecTimeOriginal
 
-# DESTINATION = "/mnt/d/sorted_photo"
-# SOURCE = '/mnt/d/imac_photo'
-DESTINATION = "/mnt/d/ws/sorted_photo"
-SOURCE = '/mnt/d/ws/timeline/test'
+DESTINATION = "/mnt/d/sorted_photo"
+SOURCE = '/mnt/d/imac_photo'
+# DESTINATION = "/mnt/d/ws/sorted_photo"
+# SOURCE = '/mnt/d/ws/timeline/test'
 
 
 def get_image_uuid(exif):
     return None
 
 
-def get_taken_time(p):
+def get_taken_time(f):
     try:
+        if f.name[-3:] == 'mp4':
+            stream = ffmpeg.probe(f)
+            tags = stream.get('format', {}).get('tags', {})
+            creation_time = tags.get(
+                'creation_time', "2000-01-01T00:00:00.000000")
+            if creation_time[-1] == 'Z':
+                creation_time = creation_time[: -1]
+            return datetime.strptime(f"{creation_time}", "%Y-%m-%dT%H:%M:%S.%f")
         with Image.open(f) as im:
             if isinstance(im, TiffImageFile):
                 date_time = im.tag_v2.get(DATE_TIME)
@@ -27,7 +35,6 @@ def get_taken_time(p):
             exif = im.getexif()
             raw_ts = exif.get(EXIF_TIME_TAG)
             sub_sec = int(exif.get(EXIF_SUB_SEC_TIME_TAG, 1))
-            print(f"sub_sec = {sub_sec}")
             return get_date_time_from_time_taken(raw_ts, sub_sec)
     except Exception as e:
         print(f"met error when processing image, error = {e}")
@@ -46,7 +53,7 @@ def get_date_time_from_time_taken(taken_time, sub_sec):
 
 def get_dest_dir(taken_datetime):
     year, month = taken_datetime.year, taken_datetime.month
-    quarter = int(month / 3) + 1
+    quarter = int((month - 1) / 3) + 1
     return f"{DESTINATION}/{year}-Q{quarter}"
 
 
@@ -69,7 +76,7 @@ def move_file(taken_datetime, f):
 print("Hello world")
 p = Path(SOURCE)
 for f in p.glob("**/*.*"):
-    print(f"{f.name}")
+    print(f"Moving {f.name}")
     taken_datetime = get_taken_time(f)
     if taken_datetime is None:
         continue
