@@ -1,13 +1,17 @@
 from PIL import Image
 from PIL.ExifTags import TAGS
+from PIL.TiffImagePlugin import TiffImageFile, DATE_TIME
 from pathlib import Path
 from datetime import datetime
+from mutagen import File
 
 EXIF_TIME_TAG = 0x9003  # DateTimeOriginal
 EXIF_SUB_SEC_TIME_TAG = 0x9291  # SubsecTimeOriginal
 
-DESTINATION = "/mnt/d/ws/sort_photo"
-SOURCE = '/mnt/d/ws/timeline'
+# DESTINATION = "/mnt/d/sorted_photo"
+# SOURCE = '/mnt/d/imac_photo'
+DESTINATION = "/mnt/d/ws/sorted_photo"
+SOURCE = '/mnt/d/ws/timeline/test'
 
 
 def get_image_uuid(exif):
@@ -17,17 +21,20 @@ def get_image_uuid(exif):
 def get_taken_time(p):
     try:
         with Image.open(f) as im:
+            if isinstance(im, TiffImageFile):
+                date_time = im.tag_v2.get(DATE_TIME)
+                return get_date_time_from_time_taken(date_time, 0)
             exif = im.getexif()
             raw_ts = exif.get(EXIF_TIME_TAG)
             sub_sec = int(exif.get(EXIF_SUB_SEC_TIME_TAG, 1))
             print(f"sub_sec = {sub_sec}")
-            return get_time_taken(raw_ts, sub_sec)
+            return get_date_time_from_time_taken(raw_ts, sub_sec)
     except Exception as e:
         print(f"met error when processing image, error = {e}")
         return None
 
 
-def get_time_taken(taken_time, sub_sec):
+def get_date_time_from_time_taken(taken_time, sub_sec):
     try:
         if sub_sec < 1000:
             # pad right
@@ -52,7 +59,7 @@ def move_file(taken_datetime, f):
     dest_dir = get_dest_dir(taken_datetime)
     new_file_path = f"{dest_dir}/{f.name}"
     Path(dest_dir).mkdir(parents=True, exist_ok=True)
-    if file_exist(dest_dir, f):
+    if file_exist(new_file_path, f):
         print(
             f"[ERORR]: File exists, skip moving. new_file_path = {new_file_path}")
         return
