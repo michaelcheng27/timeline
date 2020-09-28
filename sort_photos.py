@@ -11,7 +11,7 @@ EXIF_SUB_SEC_TIME_TAG = 0x9291  # SubsecTimeOriginal
 DESTINATION = "/mnt/d/sorted_photo"
 SOURCE = '/mnt/d/imac_photo'
 # DESTINATION = "/mnt/d/ws/sorted_photo"
-# SOURCE = '/mnt/d/ws/timeline/test'
+SOURCE = '/mnt/d/ws/timeline/test'
 
 
 def get_image_uuid(exif):
@@ -73,6 +73,16 @@ def move_file(taken_datetime, f):
     f.rename(new_file_path)
 
 
+def remove_empty_folder(parent):
+    childs = list(parent.iterdir())
+    if len(childs) == 0:
+        print(f"Removing {parent} since it's empty")
+        parent.rmdir()
+    for child in childs:
+        if child.is_dir():
+            remove_empty_folder(child)
+
+
 print("Hello world")
 p = Path(SOURCE)
 for f in p.glob("**/*.*"):
@@ -81,3 +91,7 @@ for f in p.glob("**/*.*"):
     if taken_datetime is None:
         continue
     move_file(taken_datetime, f)
+
+# remove empty directory
+remove_empty_folder(p)
+print(f"=================Complete=================")
