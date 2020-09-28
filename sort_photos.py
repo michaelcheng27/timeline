@@ -14,6 +14,7 @@ SOURCE = '/mnt/d/imac_photo'
 # SOURCE = '/mnt/d/ws/timeline/test'
 FAILED_DIR = "/mnt/d/failed"
 NOT_SUPPORTED_DIR = "/mnt/d/not_supported"
+DUPLICATED_DIR = "/mnt/d/duplicated"
 
 PLACE_HOLDER_FILE_NAME = "place_holder.md"
 ENABLE_TS_FALLBACK_TO_LS_STAT = False
@@ -120,9 +121,11 @@ def move_file(taken_datetime, f):
                 f"Image is not same or not supported {f} and {new_file_path}, rename and then move")
             new_file_path = f"{dest_dir}/1-{f.name}"
         else:
+            Path(DUPLICATED_DIR).mkdir(parents=True, exist_ok=True)
+            duplicated_path = f"{DUPLICATED_DIR}/{f.name}"
             print(
-                f"[ERORR]: File exists, skip moving. new_file_path = {new_file_path}")
-            return
+                f"[ERORR]: File exists, moving to duplicate folder. duplicated_path = {duplicated_path}, new_file_path = {new_file_path}")
+            new_file_path = duplicated_path
     print(f"Moving {f} to {new_file_path}")
     f.rename(new_file_path)
 
