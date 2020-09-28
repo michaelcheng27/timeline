@@ -15,6 +15,9 @@ SOURCE = '/mnt/d/imac_photo'
 FAILED_DIR = "/mnt/d/failed"
 NOT_SUPPORTED_DIR = "/mnt/d/not_supported"
 
+PLACE_HOLDER_FILE_NAME = "place_holder.md"
+ENABLE_TS_FALLBACK_TO_LS_STAT = False
+
 
 def is_format_not_supported(f):
     return f.name[-3:].lower() in ['png', 'aae']
@@ -66,7 +69,12 @@ def get_taken_time(f):
             raw_ts, sub_sec = get_date_time_original(im)
             return get_date_time_from_time_taken(raw_ts, sub_sec)
     except Exception as e:
-        print(f"met error when processing image, error = {e}")
+        if ENABLE_TS_FALLBACK_TO_LS_STAT:
+            lstats = Path(f).lstat()
+            if lstats and lstats.st_mtime:
+                print(f"Fallback to lsstat for {f}")
+                return datetime.fromtimestamp(round(float(lstats.st_mtime)))
+        print(f"met error when processing {f}, error = {e}")
         return None
 
 
@@ -132,6 +140,8 @@ def remove_empty_folder(parent):
 print("Hello world")
 p = Path(SOURCE)
 for f in p.glob("**/*.*"):
+    if f.name == PLACE_HOLDER_FILE_NAME:
+        continue
     taken_datetime = get_taken_time(f)
     move_file(taken_datetime, f)
 
