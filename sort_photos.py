@@ -4,12 +4,17 @@ from PIL.TiffImagePlugin import TiffImageFile, DATE_TIME
 from pathlib import Path
 from datetime import datetime
 import ffmpeg
+import hashlib
+from dynamodb import DynamoDB
+from botocore.exceptions import ClientError
 
 EXIF_TIME_TAG = 0x9003  # DateTimeOriginal
 EXIF_SUB_SEC_TIME_TAG = 0x9291  # SubsecTimeOriginal
 
-DESTINATION = "/mnt/d/sorted_photo"
-SOURCE = '/mnt/d/imac_photo'
+DESTINATION = "/mnt/d/sorted_photos"
+VIDEO_DESTINATION = "/mnt/d/sorted_videos"
+SOURCE = '/mnt/d/dup_sorted_photos'
+# SOURCE = '/mnt/d/failed'
 # DESTINATION = "/mnt/d/ws/sorted_photo"
 # SOURCE = '/mnt/d/ws/timeline/test'
 FAILED_DIR = "/mnt/d/failed"
@@ -18,6 +23,10 @@ DUPLICATED_DIR = "/mnt/d/duplicated"
 
 PLACE_HOLDER_FILE_NAME = "place_holder.md"
 ENABLE_TS_FALLBACK_TO_LS_STAT = False
+
+TEST_MODE = False
+
+image_table = DynamoDB('casa-ccc-photo')
 
 
 def is_format_not_supported(f):
@@ -35,7 +44,7 @@ def get_date_time_original_from_ffmpeg(f):
 
 
 def is_video(f):
-    return f.name[-3:] in ['mp4', 'MP4', 'MOV', 'mov']
+    return f.name[-3:] in ['mp4', 'MP4', 'MOV', 'mov', 'm4v']
 
 
 def is_video_same(a, b):
@@ -52,6 +61,11 @@ def is_image_same(a, b):
         return False
 
 
+def get_image_hash(image):
+    md5hash = hashlib.md5(image.tobytes())
+    return md5hash.hexdigest()
+
+
 def get_date_time_original(image):
     if isinstance(image, TiffImageFile):
         date_time = image.tag_v2.get(DATE_TIME)
@@ -63,12 +77,24 @@ def get_date_time_original(image):
 
 
 def get_taken_time(f):
+    image_hash = None
     try:
         if is_video(f):
             return get_date_time_original_from_ffmpeg(f)
         with Image.open(f) as im:
+            # print(f"{f.name} hash = {get_image_hash(im)}")
             raw_ts, sub_sec = get_date_time_original(im)
-            return get_date_time_from_time_taken(raw_ts, sub_sec)
+            created_time = get_date_time_from_time_taken(raw_ts, sub_sec)
+            image_hash = get_image_hash(im)
+            image_table.put_item({
+                "image_hash": image_hash,
+                "created_time": f"{created_time.timestamp()}",
+            })
+            return created_time
+    except ClientError as err:
+        print(
+            f"Failed to insert image to table, image_hash = {image_hash}, exception = {err}")
+        return None
     except Exception as e:
         if ENABLE_TS_FALLBACK_TO_LS_STAT:
             lstats = Path(f).lstat()
@@ -89,10 +115,11 @@ def get_date_time_from_time_taken(taken_time, sub_sec):
         return datetime.strptime(f"{taken_time}.{sub_sec:06}", "%Y-%m-%d %H:%M:%S.%f")
 
 
-def get_dest_dir(taken_datetime):
+def get_dest_dir(taken_datetime, f):
     year, month = taken_datetime.year, taken_datetime.month
     quarter = int((month - 1) / 3) + 1
-    return f"{DESTINATION}/{year}-Q{quarter}"
+    destination_dir = VIDEO_DESTINATION if is_video(f) else DESTINATION
+    return f"{destination_dir}/{year}-Q{quarter}"
 
 
 def file_exist(new_file_path, f):
@@ -112,7 +139,7 @@ def move_file(taken_datetime, f):
     if format_not_supported:
         dest_dir = NOT_SUPPORTED_DIR
     if taken_datetime:
-        dest_dir = get_dest_dir(taken_datetime)
+        dest_dir = get_dest_dir(taken_datetime, f)
     new_file_path = f"{dest_dir}/{f.name}"
     Path(dest_dir).mkdir(parents=True, exist_ok=True)
     if file_exist(new_file_path, f):
@@ -142,10 +169,22 @@ def remove_empty_folder(parent):
 
 print("Hello world")
 p = Path(SOURCE)
+total_file_count = len(list(p.glob("**/*.*")))
+print(f"Start Processing {total_file_count} files")
+progress = 0
+processed = 0
 for f in p.glob("**/*.*"):
+    processed += 1
+    new_progress = int(processed * 100.0 / total_file_count)
+    if new_progress > progress:
+        progress = new_progress
+        print(f"====== PROGRESS {progress}% =======")
     if f.name == PLACE_HOLDER_FILE_NAME:
         continue
     taken_datetime = get_taken_time(f)
+    if TEST_MODE:
+        print("test mode, skip move file")
+        continue
     move_file(taken_datetime, f)
 
 # remove empty directory
