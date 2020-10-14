@@ -6,7 +6,7 @@ from media import Photo, Video
 
 DESTINATION = "/mnt/d/sorted_photos"
 VIDEO_DESTINATION = "/mnt/d/sorted_videos"
-SOURCE = '/mnt/d/sorted_videos_old'
+SOURCE = '/mnt/d/sorted_videos_o'
 # SOURCE = '/mnt/d/failed'
 # DESTINATION = "/mnt/d/ws/sorted_photo"
 # SOURCE = '/mnt/d/ws/timeline/test'
@@ -41,36 +41,37 @@ def file_exist(new_file_path, f):
 
 def move_file(taken_datetime, f, media):
     # make sure dest_dir exist
-    if media and media.is_existing:
-        print(f"media {media.uuid} already exists, skip moving")
-        return
-    dest_dir = FAILED_DIR
-    format_not_supported = is_format_not_supported(f)
-    if format_not_supported:
-        dest_dir = NOT_SUPPORTED_DIR
-    if taken_datetime:
-        dest_dir = get_dest_dir(taken_datetime, f)
     file_type = f.name.split('.')[-1]
     file_name = f.name.split('.')[0]
-    if media:
+    new_file_path = f"{DUPLICATED_DIR}/{f.name}"
+    if not media or not media.is_existing:
         file_name = media.uuid
-    new_file_path = f"{dest_dir}/{file_name}.{file_type}"
-    Path(dest_dir).mkdir(parents=True, exist_ok=True)
+        dest_dir = FAILED_DIR
+        format_not_supported = is_format_not_supported(f)
+        if format_not_supported:
+            dest_dir = NOT_SUPPORTED_DIR
+        if taken_datetime:
+            dest_dir = get_dest_dir(taken_datetime, f)
+        new_file_path = f"{dest_dir}/{file_name}.{file_type}"
+        Path(dest_dir).mkdir(parents=True, exist_ok=True)
 
-    if file_exist(new_file_path, f):
-        new_file_path_media = create_media_node(new_file_path)
-        is_same = new_file_path_media.media_type == media.media_type and new_file_path_media.uuid == media.uuid
+        if file_exist(new_file_path, f):
+            new_file_path_media = create_media_node(f)
+            is_same = new_file_path_media.media_type == media.media_type and new_file_path_media.uuid == media.uuid
 
-        if format_not_supported or not is_same:
-            print(
-                f"Image is not same or not supported {f} and {new_file_path}, rename and then move")
-            new_file_path = f"{dest_dir}/1-{file_name}"
-        else:
-            Path(DUPLICATED_DIR).mkdir(parents=True, exist_ok=True)
-            duplicated_path = f"{DUPLICATED_DIR}/{file_name}"
-            print(
-                f"[ERORR]: File exists, moving to duplicate folder. duplicated_path = {duplicated_path}, new_file_path = {new_file_path}")
-            new_file_path = duplicated_path
+            if format_not_supported or not is_same:
+                print(
+                    f"Image is not same or not supported {f} and {new_file_path}, rename and then move")
+                new_file_path = f"{dest_dir}/1-{f.name}"
+            else:
+                Path(DUPLICATED_DIR).mkdir(parents=True, exist_ok=True)
+                duplicated_path = f"{DUPLICATED_DIR}/{f.name}"
+                print(
+                    f"[ERORR]: File exists, moving to duplicate folder. duplicated_path = {duplicated_path}, new_file_path = {new_file_path}")
+                new_file_path = duplicated_path
+    else:
+        print(
+            f"media {media.uuid} already exists,moving it to duplicate {new_file_path}")
     print(f"Moving {f} to {new_file_path}")
     f.rename(new_file_path)
 
@@ -86,6 +87,8 @@ def remove_empty_folder(parent):
 
 
 def create_media_node(f):
+    if isinstance(f, str):
+        print(f"f = {f}")
     if is_video(f):
         return Video(f)
     return Photo(f)
@@ -110,7 +113,11 @@ for f in p.glob("**/*.*"):
     if TEST_MODE:
         print("test mode, skip move file")
         continue
-    move_file(taken_time, f, media)
+    try:
+        move_file(taken_time, f, media)
+    except Exception as e:
+        print(f"failed to move {f}, exception = {e}")
+        raise e
 
 # remove empty directory
 remove_empty_folder(p)

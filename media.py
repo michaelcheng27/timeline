@@ -71,6 +71,7 @@ class Video(Media):
         tags = formats.get('tags', {})
         file_name = formats.get('filename', 'unknown_file_name')
         file_name = file_name.split('/')[-1]
+        file_name = file_name.split('.')[0]
         creation_time = tags.get(
             'creation_time', "2000-01-01T00:00:00.000000")
         if creation_time[-1] == 'Z':
@@ -91,6 +92,8 @@ class Photo(Media):
         self._created_time = None
         self._is_existing = False
         self.process_image(file_path)
+        # safe guard if hash is not computed
+        self._image_hash = self._image_hash or "notHashed"
         self._uuid = f"{self.create_time_to_string}-{self._image_hash[:10]}"
         if not skip_dedupe:
             self.check_dedupe()
